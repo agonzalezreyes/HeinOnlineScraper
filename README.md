@@ -1,10 +1,12 @@
-# Hein Online Consitution Scraper
+# Hein Online Constitution Scraper
 
-This is a scraper for the Hein Online database of US Constitutions. It is a work in progress.
+This is a scraper for the Hein Online database of constitutions. It is a work in progress.
 
 ## Usage
 
-Python 3.9 is preferred. Install the requirements with `pip install -r requirements.txt`. 
+Python 3.9 is preferred; Google Chrome Driver is a requirement. 
+
+Install the requirements with `pip install -r requirements.txt`. 
 
 ### Getting relevant document links:
 
