@@ -1,0 +1,6 @@
+src/test*
+src/__pycache__*
+.vscode*
+output/*
+local/*
+.DS_Store

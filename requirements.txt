@@ -1,0 +1,5 @@
+selenium
+pandas
+webdriver-manager
+pathlib
+tqdm

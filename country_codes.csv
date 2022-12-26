@@ -1,0 +1,12 @@
+country,code,all_files
+Chile,86,False
+Venezuela,450,False
+Argentina,20,False
+Bolivia,52,False
+Brazil,60,False
+Colombia,94,False
+Haiti,186,False
+Mexico,270,True
+Paraguay,324,False
+Peru,326,True
+Uruguay,442,True
