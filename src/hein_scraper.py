@@ -21,12 +21,10 @@ def check_exists_by_class(driver, class_name):
         return False
     return True
 
-TARGET_URL_END = "&collection=cow"
 TARGET_URL = ["HOL/Page?handle=hein.cow/", "/HOL/Page?collection=cow&handle=hein.cow/"]
 def get_correct_link_and_title(items):
     for item in items:
         url = item.get_attribute("href")
-        print(url, item.text)
         if TARGET_URL[0] in url or TARGET_URL[1] in url:
             return url, item.text
     return None, None
@@ -111,7 +109,7 @@ def constitution_scrape_links(
             
                     if len(a_items) > 0:
                         item_url, item_title = get_correct_link_and_title(a_items)
-                        print(item_url, item_title)
+                        # print(item_url, item_title)
                         if item_url and item_title:
                             version = {item_title : item_url}
                             if version not in DocumentsDict["documents"][doc_title]:
@@ -121,7 +119,7 @@ def constitution_scrape_links(
                 a_items = li_item.find_elements(By.TAG_NAME, "a")
                 if len(a_items) > 0:
                     url, name = get_correct_link_and_title(a_items)
-                    print(url, name)
+                    # print(url, name)
                     
                     if url and name:
                         version = {name : url}
@@ -142,13 +140,17 @@ def constitution_scrape_links(
     time.sleep(1)
     driver.quit()
 
-def section_pages_url(url, outfile, id_num, off_campus = False):
+def section_pages_url(driver, url, outfile, id_num, off_campus = False):
     """
     Get the text in a section page
     """
     print("Getting text from section page...")
-    s = Service('/Applications/chromedriver')
-    driver = webdriver.Chrome(service=s)
+
+    if not driver:
+        print("Initializing driver...")
+        s = Service('/Applications/chromedriver')
+        driver = webdriver.Chrome(service=s)
+
     driver.get(url)
     time.sleep(1)
 
@@ -168,9 +170,7 @@ def section_pages_url(url, outfile, id_num, off_campus = False):
             all_links.append(a_elem[0].get_attribute("href"))
     
     unique_text_links = sort_links(all_links)
-    print(unique_text_links)
-    next_section_link, next_section_id = get_next_link(id_num, all_links)
-    print(next_section_link, next_section_id)
+    next_section_link, next_section_id = get_next_link(id_num, unique_text_links)
     link = url + TEXT_TYPE
     # open text section
     add_to_file(outfile, "<text>")
@@ -186,12 +186,15 @@ def section_pages_url(url, outfile, id_num, off_campus = False):
     # close text section
     add_to_file(outfile, "</text>")
 
-def all_pages_url(url, outfile, off_campus = False):
+def all_pages_url(driver, url, outfile, off_campus = False):
     """
     Get the text in all pages from the url
     """
-    s = Service('/Applications/chromedriver')
-    driver = webdriver.Chrome(service=s)
+    if not driver:
+        print("Initializing driver...")
+        s = Service('/Applications/chromedriver')
+        driver = webdriver.Chrome(service=s)
+    
     driver.get(url + TEXT_TYPE)
     time.sleep(1)
 
@@ -208,7 +211,6 @@ def all_pages_url(url, outfile, off_campus = False):
     javascript_string = next_page_button.get_attribute("onclick").strip().splitlines()[1]
     javascript_string = javascript_string.replace("\t", "")
     max_page = int(javascript_string.split("i_id == ")[1].split("))")[0])
-    print(max_page)
 
     # open text section
     add_to_file(outfile, "</text>")
@@ -223,11 +225,10 @@ def all_pages_url(url, outfile, off_campus = False):
     # close text section
     add_to_file(outfile, "</text>")
 
-def extract_document_from_url(url, outfile, off_campus = False):
+def extract_document_from_url(driver, url, outfile, off_campus = False):
     # check if url contains &id=, which means it is a section to be scraped
     if "&id=" in url:
         id_num = int(url.split("&id=")[-1].split("&")[0])
-        print("id: ", id_num)
-        section_pages_url(url, outfile, id_num, off_campus)
+        section_pages_url(driver, url, outfile, id_num, off_campus)
     else: # otherwise, all document needs to be scraped
-        all_pages_url(url, outfile, off_campus)
+        all_pages_url(driver, url, outfile, off_campus)

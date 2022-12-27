@@ -1,5 +1,6 @@
 import os
 import re
+from os import linesep
 from pathlib import Path
 
 import defaults
@@ -53,26 +54,28 @@ def get_next_link(id_num, all_links):
     """
     all_links = [link for link in all_links if int(link.split("&id=")[-1].split("&")[0]) > id_num]
     if all_links[0]:
-        print("Next link: ", all_links[0])
         return all_links[0], int(all_links[0].split("&id=")[-1].split("&")[0])
     return None, None
 
+def dedent(message):
+    return linesep.join(line.lstrip() for line in message.splitlines())
+
 def generate_header(country, title, date, version, url, authors = "names"):
-    return """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <author> {authors} </author>
-        <country> {country} </country>
-        <title> {title} </title>
-        <date> {date} </date>
-        <version> {version} </version>
-        <source> {url} </source>
-        """.format(
-            authors = authors, 
-            country = country, 
-            title = title, 
-            date = date, 
-            version = version, 
-            url = url)
+    header = """<?xml version="1.0" encoding="UTF-8"?>
+            <author> {authors} </author>
+            <country> {country} </country>
+            <title> {title} </title>
+            <date> {date} </date>
+            <version> {version} </version>
+            <source> {url} </source>
+            """.format(
+                authors = authors, 
+                country = country, 
+                title = title, 
+                date = date, 
+                version = version, 
+                url = url)
+    return dedent(header)
 
 def add_to_file(outfile, message):
     mode = "a" if Path(outfile).is_file() else "w"

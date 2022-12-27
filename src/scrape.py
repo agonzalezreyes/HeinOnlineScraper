@@ -6,6 +6,8 @@ from pathlib import Path
 import click
 import pandas as pd
 from tqdm import tqdm
+from selenium.webdriver.chrome.service import Service
+from selenium import webdriver
 
 import defaults
 from hein_scraper import constitution_scrape_links, extract_document_from_url
@@ -51,13 +53,15 @@ def cli():
     )
 @click.option(
     '--off_campus',
-    '-o',
+    '-off',
     is_flag=True,
     default=False,
     help='Use off campus url'
     )
 def links(country_code, map_file, out_dir, max_year, all_files, off_campus):
-    """Scrape a country's constitution document inks from HeinOnline"""
+    """
+        Scrape a country's constitution document inks from HeinOnline
+    """
     # create output directory if it doesn't exist
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     # load country code map
@@ -91,13 +95,15 @@ def links(country_code, map_file, out_dir, max_year, all_files, off_campus):
     )
 @click.option(
     '--off_campus',
-    '-o',
+    '-off',
     is_flag=True,
     default=False,
     help='Use if located off campus'
     )
 def text(country_json, out_dir, off_campus):
-    """Scrape a country's constitution document text from HeinOnline"""
+    """
+        Scrape a country's constitution document text from HeinOnline
+    """
 
     # create output directory if it doesn't exist
     Path(out_dir).mkdir(parents=True, exist_ok=True)
@@ -112,6 +118,13 @@ def text(country_json, out_dir, off_campus):
     Path(out_dir).mkdir(parents=True, exist_ok=True)
 
     documents = country_dict['documents']
+
+    driver = None
+    if off_campus:
+        # further, we are gonna create a single driver for all the documents 
+        # so we dont have to sign-in multiple times when off campus network
+        s = Service('/Applications/chromedriver')
+        driver = webdriver.Chrome(service=s)
 
     for document in documents:
         # subfolder for document, to save all relevant versions
@@ -137,10 +150,11 @@ def text(country_json, out_dir, off_campus):
             with open(version_path, "w") as f:
                 f.write(header + "\n\n")
             
-            if off_campus:
-                extract_document_from_url(version_link, version_path)
+            # Note: We only don't do multiprocess if we're off campus to manually sign-in to heinonline
+            if off_campus and driver: # since we are off campus and need to manually sign-in, we can't multiprocess
+                extract_document_from_url(driver, version_link, version_path, off_campus)
             else: # not off campus
-                p = Process(target=extract_document_from_url, args=(version_link, version_path, off_campus))
+                p = Process(target=extract_document_from_url, args=(None, version_link, version_path, off_campus))
                 processes.append(p)
                 p.start()
         
