@@ -141,6 +141,11 @@ def text(country_json, out_dir, off_campus):
             version_link = version[version_title]
             version_name = create_file_string(version_title) + '.txt'
             version_path = os.path.join(subfolder_path, version_name)
+            # if file exists, continue to the next
+            if os.path.exists(version_path):
+                print("File exists: " + version_path)
+                print("Skipping...")
+                continue
             header = generate_header(
                 country_dict['country']['name'], 
                 document.strip(), 
