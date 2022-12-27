@@ -12,7 +12,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from tqdm import tqdm
 
 import defaults
-from utils import satisfiesConstraints
+from utils import satisfiesConstraints, sort_links, get_next_link, add_to_file
 
 def check_exists_by_class(driver, class_name):
     try:
@@ -62,6 +62,7 @@ def constitution_scrape_links(
             WebDriverWait(driver, 60).until(element_present)
         except TimeoutException:
             print("Timed out waiting for page to load!")
+            exit(1)
     
     constitutionSection = driver.find_element("xpath", '//*[@id="top_hier"]/ul/a[2]')
     constitutionSection.click()
@@ -141,13 +142,24 @@ def constitution_scrape_links(
     time.sleep(1)
     driver.quit()
 
-# TODO: fix this
-def extract_document_from_url(url, outfile):
-
+def section_pages_url(url, outfile, id_num, off_campus = False):
+    """
+    Get the text in a section page
+    """
+    print("Getting text from section page...")
     s = Service('/Applications/chromedriver')
     driver = webdriver.Chrome(service=s)
     driver.get(url)
+    time.sleep(1)
 
+    if off_campus:
+        try:
+            element_present = EC.presence_of_element_located((By.XPATH, '//*[@id="table-of-contents"]'))
+            WebDriverWait(driver, 60).until(element_present)
+        except TimeoutException:
+            print("Timed out waiting for page to load!")
+            exit(1)
+    
     elements = driver.find_elements(By.CLASS_NAME, "page_line")
     all_links = []
     for element in elements:
@@ -155,15 +167,67 @@ def extract_document_from_url(url, outfile):
         if len(a_elem) > 0:
             all_links.append(a_elem[0].get_attribute("href"))
     
-    unique_text_links = list(set(all_links))
-    # sort the links
-    unique_text_links = sorted(unique_text_links, key=lambda x: int(x.split("&id=")[-1].split("&")[0]))
+    unique_text_links = sort_links(all_links)
+    print(unique_text_links)
+    next_section_link, next_section_id = get_next_link(id_num, all_links)
+    print(next_section_link, next_section_id)
+    link = url + TEXT_TYPE
+    # open text section
+    add_to_file(outfile, "<text>")
+    if next_section_id and next_section_link:
+        for id in range(id_num, next_section_id):
+            # replace the &id= number in the url url
+            link = url.replace(f"&id={id_num}", f"&id={id}")
+            # print(link)
+            driver.get(link)
+            # get text from page and write to file
+            pageTextBox = driver.find_element(By.XPATH, "//*[@id=\"PageTextBox\"]/pre")
+            add_to_file(outfile, pageTextBox.text)
+    # close text section
+    add_to_file(outfile, "</text>")
 
-    for link in tqdm(unique_text_links, total=len(unique_text_links), desc="Processing document pages..."):
-        driver.get(link + TEXT_TYPE)
+def all_pages_url(url, outfile, off_campus = False):
+    """
+    Get the text in all pages from the url
+    """
+    s = Service('/Applications/chromedriver')
+    driver = webdriver.Chrome(service=s)
+    driver.get(url + TEXT_TYPE)
+    time.sleep(1)
+
+    if off_campus:
+        try:
+            element_present = EC.presence_of_element_located((By.XPATH, '//*[@id="table-of-contents"]'))
+            WebDriverWait(driver, 60).until(element_present)
+        except TimeoutException:
+            print("Timed out waiting for page to load!")
+            exit(1)
+    
+    next_page_button = driver.find_element(By.XPATH, '//*[@id="page_right"]')
+
+    javascript_string = next_page_button.get_attribute("onclick").strip().splitlines()[1]
+    javascript_string = javascript_string.replace("\t", "")
+    max_page = int(javascript_string.split("i_id == ")[1].split("))")[0])
+    print(max_page)
+
+    # open text section
+    add_to_file(outfile, "</text>")
+    curr_id = 1
+    while curr_id <= max_page:
         pageTextBox = driver.find_element(By.XPATH, "//*[@id=\"PageTextBox\"]/pre")
-        mode = "a" if Path(outfile).is_file() else "w"
-        with open(outfile, mode) as f:
-            f.write(pageTextBox.text + "\n")
+        add_to_file(outfile, pageTextBox.text)
+        curr_id += 1
+        next_page_button.click()
+        time.sleep(0.5)
+        next_page_button = driver.find_element(By.XPATH, '//*[@id="page_right"]')
+    # close text section
+    add_to_file(outfile, "</text>")
 
-    # print("Saved to file: ", outfile)
+def extract_document_from_url(url, outfile, off_campus = False):
+    # check if url contains &id=, which means it is a section to be scraped
+    if "&id=" in url:
+        id_num = int(url.split("&id=")[-1].split("&")[0])
+        print("id: ", id_num)
+        section_pages_url(url, outfile, id_num, off_campus)
+    else: # otherwise, all document needs to be scraped
+        all_pages_url(url, outfile, off_campus)

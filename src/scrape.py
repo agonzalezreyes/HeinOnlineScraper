@@ -1,5 +1,6 @@
 import json
 import os
+from multiprocessing import Process
 from pathlib import Path
 
 import click
@@ -8,7 +9,7 @@ from tqdm import tqdm
 
 import defaults
 from hein_scraper import constitution_scrape_links, extract_document_from_url
-from utils import create_file_string, log_to_file
+from utils import create_file_string, log_to_file, generate_header, extractYear
 
 @click.group()
 def cli():
@@ -88,40 +89,66 @@ def links(country_code, map_file, out_dir, max_year, all_files, off_campus):
     type=click.Path(), 
     help='Output directory for scraped files'
     )
-def text(country_json, out_dir):
+@click.option(
+    '--off_campus',
+    '-o',
+    is_flag=True,
+    default=False,
+    help='Use if located off campus'
+    )
+def text(country_json, out_dir, off_campus):
     """Scrape a country's constitution document text from HeinOnline"""
+
     # create output directory if it doesn't exist
     Path(out_dir).mkdir(parents=True, exist_ok=True)
+
     # open json file of country with documents and links
     country_dict = {}
     with open(country_json, 'r') as f:
         country_dict = json.load(f)
+
     # create output directory if it doesn't exist
     out_dir = os.path.join(out_dir, country_dict['country']['name'])
     Path(out_dir).mkdir(parents=True, exist_ok=True)
+
     documents = country_dict['documents']
+
     for document in documents:
+        # subfolder for document, to save all relevant versions
         subfolder_name = create_file_string(document)
         subfolder_path = os.path.join(out_dir, subfolder_name)
         Path(subfolder_path).mkdir(parents=True, exist_ok=True)
-        versions = country_dict['documents'][document]
-        # print("Document: ", document.strip())
 
-        log_to_file("Document: " + document.strip(), out_dir)
-        for version in tqdm(versions, total=len(versions), desc=f"- Processing versions..."):
+        versions = country_dict['documents'][document]
+        print("Document: " + document.strip(), out_dir)
+
+        processes = []
+        for version in versions:
             version_title = list(version.keys())[0]
             version_link = version[version_title]
             version_name = create_file_string(version_title) + '.txt'
             version_path = os.path.join(subfolder_path, version_name)
-            extract_document_from_url(version_link, version_path)
-            log_to_file("Finished extracting document(s) from url: " + version_link, out_dir)
+            header = generate_header(
+                country_dict['country']['name'], 
+                document.strip(), 
+                extractYear(document.strip()), 
+                version_title, 
+                version_link)
+            with open(version_path, "w") as f:
+                f.write(header + "\n\n")
+            
+            if off_campus:
+                extract_document_from_url(version_link, version_path)
+            else: # not off campus
+                p = Process(target=extract_document_from_url, args=(version_link, version_path, off_campus))
+                processes.append(p)
+                p.start()
         
-        # process each version is a different thread
-        # with concurrent.futures.ThreadPoolExecutor() as executor:
-        #     executor.map(extract_document_from_url, versions, version_paths)
-
-
-
+        if not off_campus:
+            for p in processes:
+                p.join()
+        
+        print("Finished extracting document(s) for " + document)
 
 
 if __name__ == "__main__":
