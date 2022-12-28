@@ -53,7 +53,6 @@ def cli():
     )
 @click.option(
     '--off_campus',
-    '-off',
     is_flag=True,
     default=False,
     help='Use off campus url'
@@ -95,7 +94,6 @@ def links(country_code, map_file, out_dir, max_year, all_files, off_campus):
     )
 @click.option(
     '--off_campus',
-    '-off',
     is_flag=True,
     default=False,
     help='Use if located off campus'

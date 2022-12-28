@@ -213,7 +213,7 @@ def all_pages_url(driver, url, outfile, off_campus = False):
     max_page = int(javascript_string.split("i_id == ")[1].split("))")[0])
 
     # open text section
-    add_to_file(outfile, "</text>")
+    add_to_file(outfile, "<text>")
     curr_id = 1
     while curr_id <= max_page:
         pageTextBox = driver.find_element(By.XPATH, "//*[@id=\"PageTextBox\"]/pre")
