@@ -175,9 +175,11 @@ def section_pages_url(driver, url, outfile, id_num, off_campus = False):
     # open text section
     add_to_file(outfile, "<text>")
     if next_section_id and next_section_link:
+        print(id_num, next_section_id)
+        prev_id = id_num
         for id in range(id_num, next_section_id):
             # replace the &id= number in the url url
-            link = link.replace(f"&id={id_num}", f"&id={id}")
+            link = link.replace(f"&id={prev_id}", f"&id={id}")
             driver.get(link)
             # wait until page loads with textbox 
             textbox_present = EC.presence_of_element_located((By.XPATH, '//*[@id=\"PageTextBox\"]/pre'))
@@ -185,6 +187,7 @@ def section_pages_url(driver, url, outfile, id_num, off_campus = False):
             # get text from page and write to file
             pageTextBox = driver.find_element(By.XPATH, "//*[@id=\"PageTextBox\"]/pre")
             add_to_file(outfile, pageTextBox.text)
+            prev_id = id
     # close text section
     add_to_file(outfile, "</text>")
 
