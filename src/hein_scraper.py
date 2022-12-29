@@ -144,7 +144,7 @@ def section_pages_url(driver, url, outfile, id_num, off_campus = False):
     """
     Get the text in a section page
     """
-    print("Getting text from section page...")
+    print("Getting text from section in url...")
 
     if not driver:
         print("Initializing driver...")
@@ -175,7 +175,6 @@ def section_pages_url(driver, url, outfile, id_num, off_campus = False):
     # open text section
     add_to_file(outfile, "<text>")
     if next_section_id and next_section_link:
-        print(id_num, next_section_id)
         prev_id = id_num
         for id in range(id_num, next_section_id):
             # replace the &id= number in the url url
@@ -195,6 +194,7 @@ def all_pages_url(driver, url, outfile, off_campus = False):
     """
     Get the text in all pages from the url
     """
+    print("Getting text from all pages in url...")
     if not driver:
         print("Initializing driver...")
         s = Service('/Applications/chromedriver')
