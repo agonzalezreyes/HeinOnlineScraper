@@ -225,7 +225,9 @@ def all_pages_url(driver, url, outfile, off_campus = False):
         add_to_file(outfile, pageTextBox.text)
         curr_id += 1
         next_page_button.click()
-        time.sleep(0.5)
+        # wait until page loads with next page button 
+        nextpage_present = EC.presence_of_element_located((By.XPATH, '//*[@id="page_right"]'))
+        WebDriverWait(driver, 1).until(nextpage_present)
         next_page_button = driver.find_element(By.XPATH, '//*[@id="page_right"]')
     # close text section
     add_to_file(outfile, "</text>")
